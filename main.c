@@ -30,6 +30,12 @@ int map[MAP_WIDTH][MAP_HEIGHT] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 };
 
+struct PlayerState {
+    int position[3];
+    float direction[3];
+    int health;
+};
+
 
 int main() {
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
