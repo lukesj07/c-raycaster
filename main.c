@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
+#include <math.h>
 
 #define SCREEN_WIDTH 900
 #define SCREEN_HEIGHT 900
@@ -37,7 +38,8 @@ struct playerState {
 };
 
 void drawMap2D(int map[MAP_HEIGHT][MAP_WIDTH], SDL_Surface *surface);
-void drawPlayer(float pos[2], SDL_Surface *surface);
+void drawPlayer2D(float pos[2], float direction, SDL_Surface *surface);
+void drawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2, Uint32 color);
 
 int main() {
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -72,10 +74,29 @@ int main() {
             if (e.type == SDL_QUIT) {
                 run = 0;
             }
+            if (e.type == SDL_KEYDOWN) {
+                switch (e.key.keysym.sym) {
+                    case SDLK_LEFT:
+                        player.direction -= 0.1f;
+                        break;
+                    case SDLK_RIGHT:
+                        player.direction += 0.1f;
+                        break;
+                    case SDLK_UP:
+                        player.position[0] += cos(player.direction) * 5;
+                        player.position[1] += sin(player.direction) * 5;
+                        break;
+                    case SDLK_DOWN:
+                        player.position[0] -= cos(player.direction) * 5;
+                        player.position[1] -= sin(player.direction) * 5;
+                        break;
+                }
+            }
         }
+        SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));    
 
         drawMap2D(map, surface);
-        drawPlayer(player.position, surface);
+        drawPlayer2D(player.position, player.direction, surface);
         SDL_UpdateWindowSurface(window);
     }
 
@@ -101,11 +122,30 @@ void drawMap2D(int map[MAP_HEIGHT][MAP_WIDTH], SDL_Surface *surface) {
     }
 }
 
-void drawPlayer(float pos[2], SDL_Surface *surface) {
+void drawPlayer2D(float pos[2], float direction, SDL_Surface *surface) {
     SDL_Rect rect;
     rect.x = (int) pos[0];
     rect.y = (int) pos[1];
     rect.w = 10;
     rect.h = 10;
     SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 255, 255, 0));
+
+    float dy = sin(direction) * 20;
+    float dx = cos(direction) * 20;
+
+    drawLine(surface, pos[0] + (int)(rect.w/2), pos[1] + (int)(rect.h/2), pos[0] + (int)(rect.w/2) + dx, pos[1] + (int)(rect.h/2) + dy, SDL_MapRGB(surface->format, 255, 255, 0));
+}
+
+void drawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2, Uint32 color) {
+    int dx = abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
+    int dy = -abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
+    int err = dx + dy, e2;
+
+    for (;;) {
+        ((Uint32 *)surface->pixels)[y1 * surface->w + x1] = color;
+        if (x1 == x2 && y1 == y2) break;
+        e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x1 += sx; }
+        if (e2 <= dx) { err += dx; y1 += sy; }
+    }
 }
