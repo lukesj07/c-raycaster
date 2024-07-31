@@ -8,6 +8,9 @@
 #define MAP_WIDTH 20
 #define MAP_HEIGHT 20
 
+#define HALF_FOV 0.785398
+#define DEGREE 0.0174532925
+
 int map[MAP_HEIGHT][MAP_WIDTH] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
     {1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
@@ -40,6 +43,7 @@ struct playerState {
 void drawMap2D(int map[MAP_HEIGHT][MAP_WIDTH], SDL_Surface *surface);
 void drawPlayer2D(float pos[2], float direction, SDL_Surface *surface);
 void drawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2, Uint32 color);
+void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface);
 
 int main() {
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -132,8 +136,22 @@ void drawPlayer2D(float pos[2], float direction, SDL_Surface *surface) {
 
     float dy = sin(direction) * 20;
     float dx = cos(direction) * 20;
+    int midx = pos[0]+(rect.w/2);
+    int midy = pos[1]+(rect.h/2);
+    drawLine(surface, midx, midy, midx+dx, midy+dy, SDL_MapRGB(surface->format, 255, 255, 0));
 
-    drawLine(surface, pos[0] + (int)(rect.w/2), pos[1] + (int)(rect.h/2), pos[0] + (int)(rect.w/2) + dx, pos[1] + (int)(rect.h/2) + dy, SDL_MapRGB(surface->format, 255, 255, 0));
+    drawRays(pos, direction, rect, surface);
+}
+
+void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface) {
+    float dy, dx;
+    int midx = pos[0]+(rect.w/2);
+    int midy = pos[1]+(rect.h/2);
+    for (float a = direction-HALF_FOV; a <= direction+HALF_FOV; a += DEGREE) {
+        dy = sin(a) * 80;
+        dx = cos(a) * 80;
+        drawLine(surface, midx, midy, midx+dx, midy+dy, SDL_MapRGB(surface->format, 255, 0, 0));
+    }
 }
 
 void drawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2, Uint32 color) {
