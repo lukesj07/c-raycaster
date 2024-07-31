@@ -45,6 +45,9 @@ void drawMap2D(int map[MAP_HEIGHT][MAP_WIDTH], SDL_Surface *surface);
 void drawPlayer2D(float pos[2], float direction, SDL_Surface *surface);
 void drawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2, Uint32 color);
 void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface);
+int** generateWallPositions();
+void freeWallPositions(int** positions);
+
 
 int main() {
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -71,6 +74,8 @@ int main() {
     player.position[1] = SCREEN_HEIGHT / 2;
     player.direction = 0;
     player.health = 200;
+
+    int** wallPositions = generateWallPositions();
 
     int run = 1;
     while(run) {
@@ -109,7 +114,49 @@ int main() {
 
     SDL_DestroyWindow(window);
     SDL_Quit();
+    freeWallPositions(wallPositions);
     return 0;
+}
+
+
+int** generateWallPositions() {
+    int count = 0;
+    for (int i = 0; i < MAP_HEIGHT; i++) {
+        for (int j = 0; j < MAP_WIDTH; j++) {
+            if (map[i][j] == 1) {
+                count++;
+            }
+        }
+    }
+
+    int** positions = malloc(count * sizeof(int*));
+    if (positions == NULL) {
+        perror("Failed to allocate memory for positions");
+        exit(EXIT_FAILURE);
+    }
+
+    int index = 0;
+    for (int i = 0; i < MAP_HEIGHT; i++) {
+        for (int j = 0; j < MAP_WIDTH; j++) {
+            if (map[i][j] == 1) {
+                positions[index] = malloc(2 * sizeof(int));
+                if (positions[index] == NULL) {
+                    perror("Failed to allocate memory for position");
+                    exit(EXIT_FAILURE);
+                }
+                positions[index][0] = i;
+                positions[index][1] = j;
+                index++;
+            }
+        }
+    }
+
+    return positions;
+}
+
+void freeWallPositions(int** positions) {
+    free(*positions);
+    free(positions);
 }
 
 void drawMap2D(int map[MAP_HEIGHT][MAP_WIDTH], SDL_Surface *surface) {
