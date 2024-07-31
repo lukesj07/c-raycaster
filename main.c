@@ -10,6 +10,7 @@
 
 #define HALF_FOV 0.785398
 #define DEGREE 0.0174532925
+#define PI 3.1415926536
 
 int map[MAP_HEIGHT][MAP_WIDTH] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -82,9 +83,11 @@ int main() {
                 switch (e.key.keysym.sym) {
                     case SDLK_LEFT:
                         player.direction -= 0.1f;
+                        if (player.direction < 0) {player.direction += 2*PI;}
                         break;
                     case SDLK_RIGHT:
                         player.direction += 0.1f;
+                        if (player.direction > 2*PI) {player.direction -= 2*PI;}
                         break;
                     case SDLK_UP:
                         player.position[0] += cos(player.direction) * 5;
@@ -147,7 +150,7 @@ void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface
     float dy, dx;
     int midx = pos[0]+(rect.w/2);
     int midy = pos[1]+(rect.h/2);
-    for (float a = direction-HALF_FOV; a <= direction+HALF_FOV; a += DEGREE) {
+    for (float a = direction-HALF_FOV; a <= direction+HALF_FOV; a += DEGREE*4) {
         dy = sin(a) * 80;
         dx = cos(a) * 80;
         drawLine(surface, midx, midy, midx+dx, midy+dy, SDL_MapRGB(surface->format, 255, 0, 0));
