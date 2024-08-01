@@ -41,12 +41,12 @@ struct playerState {
     int health;
 };
 
-void drawMap2D(int map[MAP_HEIGHT][MAP_WIDTH], SDL_Surface *surface);
-void drawPlayer2D(float pos[2], float direction, SDL_Surface *surface);
-void drawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2, Uint32 color);
-void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface);
+void drawMap2D(SDL_Renderer *renderer, int map[MAP_HEIGHT][MAP_WIDTH]);
+void drawPlayer2D(SDL_Renderer *renderer, float pos[2], float direction);
+void drawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, SDL_Color color);
+void drawRays(SDL_Renderer *renderer, float pos[2], float direction);
 int nearestDirectionalMultiple(float m, float n, int dir);
-float calculateDist(int p1[2], int p2[2]);
+float calculateDist(float p1[2], float p2[2]);
 
 int main() {
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -55,16 +55,14 @@ int main() {
     }
 
     SDL_Window *window = SDL_CreateWindow("SDL2 Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, 0);
-
     if(!window) {
         printf("Failed to create window\n");
         return -1;
     }
 
-    SDL_Surface *surface = SDL_GetWindowSurface(window);
-
-    if(!surface) {
-        printf("Failed to get the surface from the window\n");
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if(!renderer) {
+        printf("Failed to create renderer\n");
         return -1;
     }
 
@@ -102,22 +100,27 @@ int main() {
                 }
             }
         }
-        SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 0, 0, 0));    
 
-        drawMap2D(map, surface);
-        drawPlayer2D(player.position, player.direction, surface);
-        SDL_UpdateWindowSurface(window);
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        drawMap2D(renderer, map);
+        drawPlayer2D(renderer, player.position, player.direction);
+
+        SDL_RenderPresent(renderer);
     }
 
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
 }
 
-void drawMap2D(int map[MAP_HEIGHT][MAP_WIDTH], SDL_Surface *surface) {
+void drawMap2D(SDL_Renderer *renderer, int map[MAP_HEIGHT][MAP_WIDTH]) {
     int rectWidth = SCREEN_WIDTH / MAP_WIDTH;
     int rectHeight = SCREEN_HEIGHT / MAP_HEIGHT;
     SDL_Rect rect;
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     for (int i = 0; i < MAP_HEIGHT; i++) {
         for (int j = 0; j < MAP_WIDTH; j++) {
             if (map[i][j] == 1) {
@@ -125,27 +128,31 @@ void drawMap2D(int map[MAP_HEIGHT][MAP_WIDTH], SDL_Surface *surface) {
                 rect.y = i * rectHeight;
                 rect.w = rectWidth - 1;
                 rect.h = rectHeight - 1;
-                SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 255, 255, 255));
+                SDL_RenderFillRect(renderer, &rect);
             }
         }
     }
 }
 
-void drawPlayer2D(float pos[2], float direction, SDL_Surface *surface) {
+void drawPlayer2D(SDL_Renderer *renderer, float pos[2], float direction) {
     SDL_Rect rect;
-    rect.x = (int) pos[0];
-    rect.y = (int) pos[1];
+    rect.x = (int) pos[0] - 5;
+    rect.y = (int) pos[1] - 5;
     rect.w = 10;
     rect.h = 10;
-    SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 255, 255, 0));
+    SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255);
+    SDL_RenderFillRect(renderer, &rect);
 
     float dy = sin(direction) * 20;
     float dx = cos(direction) * 20;
-    int midx = pos[0]+(rect.w/2);
-    int midy = pos[1]+(rect.h/2);
-    drawLine(surface, midx, midy, midx+dx, midy+dy, SDL_MapRGB(surface->format, 255, 255, 0));
+    drawLine(renderer, pos[0], pos[1], pos[0] + dx, pos[1] + dy, (SDL_Color){255, 255, 0, 255});
 
-    drawRays(pos, direction, rect, surface);
+    drawRays(renderer, pos, direction);
+}
+
+void drawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, SDL_Color color) {
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+    SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
 }
 
 int nearestDirectionalMultiple(float m, float n, int dir) {
@@ -154,93 +161,82 @@ int nearestDirectionalMultiple(float m, float n, int dir) {
   return dir == -1 ? nearest : nearest + n; 
 }
 
-float calculateDist(int p1[2], int p2[2]) {
+float calculateDist(float p1[2], float p2[2]) {
     return sqrt(pow((p1[0] - p2[0]), 2) + pow((p1[1] - p2[1]), 2));
 }
 
-void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface) {
-    
+void drawRays(SDL_Renderer *renderer, float pos[2], float direction) {
     float dy, dx;
-    int mid[2];
-    mid[0] = pos[0]+(rect.w/2);
-    mid[1] = pos[1]+(rect.h/2);
+    float mid[2] = {pos[0], pos[1]};
+    float a = direction;
+    
+    float tanA = tan(a);
+    if (fabs(tanA) < 1e-6) {
+        return;
+    }
 
-    for (float a = direction-HALF_FOV; a <= direction+HALF_FOV; a += DEGREE) {
+    for (int i = 0; i < 1; i++) {
         dy = sin(a);
         dx = cos(a);
 
-        int xs[2]; // x, y pair denoting nearest intersection with a vertical line and used to track vert line search
-        int incX[2];
+        // Calculate intersections with vertical lines
+        float xs[2], incX[2];
         if (dx < 0) {
-            xs[0] = nearestDirectionalMultiple(mid[0], 45, -1);
-            xs[1] = abs(xs[0] - mid[0])*tan(a);
+            xs[0] = (mid[0] / 45) * 45;
+            xs[1] = mid[1] + (mid[0] - xs[0]) * tanA;
             incX[0] = -45;
-        }
-        if (dx > 0) {
-            xs[0] = nearestDirectionalMultiple(mid[0], 45, 1);
-            xs[1] = abs(xs[0] - mid[0])*tan(a);
+        } else {
+            xs[0] = ((mid[0] / 45) + 1) * 45;
+            xs[1] = mid[1] + (xs[0] - mid[0]) * tanA;
             incX[0] = 45;
         }
-        incX[1] = 45*tan(a);
-        
+        incX[1] = 45 * tanA;
+
         while (1) {
-            int mapX = xs[0]/45;
-            int mapY = xs[1]/45;
-            if (cos(a) < 0) {mapX--;}
-            if (sin(a) > 0) {mapY--;}
-            
-            if (map[mapY][mapX] == 1) {break;}
+            int mapX = xs[0] / 45;
+            int mapY = xs[1] / 45;
+            if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) {
+                break;
+            }
+            if (map[mapY][mapX] == 1) {
+                break;
+            }
             xs[0] += incX[0];
             xs[1] += incX[1];
         }
 
-
-
-        int ys[2]; // x, y pair denoting nearest intersection with a horizontal line and used to track horiz line search
-        int incY[2];
+        // Calculate intersections with horizontal lines
+        float ys[2], incY[2];
         if (dy < 0) {
-            ys[1] = nearestDirectionalMultiple(mid[1], 45, -1);
-            ys[0] = abs(ys[1] - mid[1])/tan(a);
+            ys[1] = (mid[1] / 45) * 45;
+            ys[0] = mid[0] + (mid[1] - ys[1]) / tanA;
             incY[1] = -45;
-        }
-        if (dy > 0) {
-            ys[1] = nearestDirectionalMultiple(mid[1], 45, 1);
-            ys[0] = abs(ys[1] - mid[1])/tan(a);
+        } else {
+            ys[1] = ((mid[1] / 45) + 1) * 45;
+            ys[0] = mid[0] + (ys[1] - mid[1]) / tanA;
             incY[1] = 45;
         }
-        incY[0] = 45/tan(a);
+        incY[0] = 45 / tanA;
 
         while (1) {
-            int mapX = ys[0]/45;
-            int mapY = ys[1]/45;
-            if (cos(a) < 0) {mapX--;}
-            if (sin(a) > 0) {mapY--;}
-            
-            if (map[mapY][mapX] == 1) {break;}
+            int mapX = ys[0] / 45;
+            int mapY = ys[1] / 45;
+            if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) {
+                break;
+            }
+            if (map[mapY][mapX] == 1) {
+                break;
+            }
             ys[0] += incY[0];
             ys[1] += incY[1];
         }
 
         if (calculateDist(mid, xs) < calculateDist(mid, ys)) {
-            drawLine(surface, mid[0], mid[1], xs[0], xs[1], SDL_MapRGB(surface->format, 255, 0, 0));
+            drawLine(renderer, mid[0], mid[1], xs[0], xs[1], (SDL_Color){255, 0, 0, 255});
         } else {
-            drawLine(surface, mid[0], mid[1], ys[0], ys[1], SDL_MapRGB(surface->format, 255, 0, 0));
+            drawLine(renderer, mid[0], mid[1], ys[0], ys[1], (SDL_Color){255, 0, 0, 255});
         }
 
-        // drawLine(surface, midx, midy, midx+dx, midy+dy, SDL_MapRGB(surface->format, 255, 0, 0));
-    }
-}
-
-void drawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2, Uint32 color) {
-    int dx = abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
-    int dy = -abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
-    int err = dx + dy, e2;
-
-    for (;;) {
-        ((Uint32 *)surface->pixels)[y1 * surface->w + x1] = color;
-        if (x1 == x2 && y1 == y2) break;
-        e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x1 += sx; }
-        if (e2 <= dx) { err += dx; y1 += sy; }
+        // drawLine(renderer, mid[0], mid[1], mid[0] + dx * 100, mid[1] + dy * 100, (SDL_Color){255, 0, 0, 255});
     }
 }
