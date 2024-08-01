@@ -8,9 +8,11 @@
 #define MAP_WIDTH 20
 #define MAP_HEIGHT 20
 
-#define HALF_FOV 0.785398
-#define DEGREE 0.0174532925
+#define HALF_FOV (PI / 4)
+#define DEGREE (PI / 180)
 #define PI 3.1415926536
+
+#define TILE_SIZE 45
 
 int map[MAP_HEIGHT][MAP_WIDTH] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -45,7 +47,6 @@ void drawMap2D(SDL_Renderer *renderer, int map[MAP_HEIGHT][MAP_WIDTH]);
 void drawPlayer2D(SDL_Renderer *renderer, float pos[2], float direction);
 void drawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, SDL_Color color);
 void drawRays(SDL_Renderer *renderer, float pos[2], float direction);
-int nearestDirectionalMultiple(float m, float n, int dir);
 float calculateDist(float p1[2], float p2[2]);
 
 int main() {
@@ -155,46 +156,36 @@ void drawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, SDL_Color 
     SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
 }
 
-int nearestDirectionalMultiple(float m, float n, int dir) {
-  // where y is 45  
-  int nearest = (m / n) * n;
-  return dir == -1 ? nearest : nearest + n; 
-}
-
-float calculateDist(float p1[2], float p2[2]) {
-    return sqrt(pow((p1[0] - p2[0]), 2) + pow((p1[1] - p2[1]), 2));
+float calculateDist(float pos[2], float intersection[2]) {
+    return sqrt(pow(intersection[0] - pos[0], 2) + pow(intersection[1] - pos[1], 2));
 }
 
 void drawRays(SDL_Renderer *renderer, float pos[2], float direction) {
-    float dy, dx;
-    float mid[2] = {pos[0], pos[1]};
-    float a = direction;
-    
-    float tanA = tan(a);
-    if (fabs(tanA) < 1e-6) {
-        return;
-    }
+    float mid[2] = {pos[0], pos[1]}; // Middle of player position
 
-    for (int i = 0; i < 1; i++) {
-        dy = sin(a);
-        dx = cos(a);
+    for (float a = direction - HALF_FOV; a <= direction + HALF_FOV; a += DEGREE) {
+        float rayAngle = fmod(a + 2 * PI, 2 * PI);  // Ensure angle is within 0 to 2*PI
+        float tanA = tan(rayAngle);
+        float dy = sin(rayAngle);
+        float dx = cos(rayAngle);
 
         // Calculate intersections with vertical lines
         float xs[2], incX[2];
         if (dx < 0) {
-            xs[0] = (mid[0] / 45) * 45;
+            xs[0] = floor(mid[0] / TILE_SIZE) * TILE_SIZE - 1;
             xs[1] = mid[1] + (mid[0] - xs[0]) * tanA;
-            incX[0] = -45;
+            incX[0] = -TILE_SIZE;
+            incX[1] = -TILE_SIZE * tanA;
         } else {
-            xs[0] = ((mid[0] / 45) + 1) * 45;
+            xs[0] = floor(mid[0] / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
             xs[1] = mid[1] + (xs[0] - mid[0]) * tanA;
-            incX[0] = 45;
+            incX[0] = TILE_SIZE;
+            incX[1] = TILE_SIZE * tanA;
         }
-        incX[1] = 45 * tanA;
 
         while (1) {
-            int mapX = xs[0] / 45;
-            int mapY = xs[1] / 45;
+            int mapX = xs[0] / TILE_SIZE;
+            int mapY = xs[1] / TILE_SIZE;
             if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) {
                 break;
             }
@@ -208,19 +199,20 @@ void drawRays(SDL_Renderer *renderer, float pos[2], float direction) {
         // Calculate intersections with horizontal lines
         float ys[2], incY[2];
         if (dy < 0) {
-            ys[1] = (mid[1] / 45) * 45;
+            ys[1] = floor(mid[1] / TILE_SIZE) * TILE_SIZE - 1;
             ys[0] = mid[0] + (mid[1] - ys[1]) / tanA;
-            incY[1] = -45;
+            incY[1] = -TILE_SIZE;
+            incY[0] = -TILE_SIZE / tanA;
         } else {
-            ys[1] = ((mid[1] / 45) + 1) * 45;
+            ys[1] = floor(mid[1] / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
             ys[0] = mid[0] + (ys[1] - mid[1]) / tanA;
-            incY[1] = 45;
+            incY[1] = TILE_SIZE;
+            incY[0] = TILE_SIZE / tanA;
         }
-        incY[0] = 45 / tanA;
 
         while (1) {
-            int mapX = ys[0] / 45;
-            int mapY = ys[1] / 45;
+            int mapX = ys[0] / TILE_SIZE;
+            int mapY = ys[1] / TILE_SIZE;
             if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) {
                 break;
             }
@@ -236,7 +228,5 @@ void drawRays(SDL_Renderer *renderer, float pos[2], float direction) {
         } else {
             drawLine(renderer, mid[0], mid[1], ys[0], ys[1], (SDL_Color){255, 0, 0, 255});
         }
-
-        // drawLine(renderer, mid[0], mid[1], mid[0] + dx * 100, mid[1] + dy * 100, (SDL_Color){255, 0, 0, 255});
     }
 }
