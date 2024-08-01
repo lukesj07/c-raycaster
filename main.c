@@ -187,8 +187,8 @@ void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface
             ys[0] = abs(ys[1] - mid[1])/tan(a);
         }
 
-        if (calculateDist(xs, mid) > calculateDist(ys, mid)) {
-            
+        if (calculateDist(xs, mid) < calculateDist(ys, mid)) {
+             
         }
         
 
