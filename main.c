@@ -109,7 +109,6 @@ int main() {
 
     SDL_DestroyWindow(window);
     SDL_Quit();
-    freeWallPositions(wallPositions);
     return 0;
 }
 
@@ -147,14 +146,33 @@ void drawPlayer2D(float pos[2], float direction, SDL_Surface *surface) {
     drawRays(pos, direction, rect, surface);
 }
 
+int nearestDirectionalMultiple(float m, float n, int dir) {
+  // where y is 45  
+  int nearest = (m / n) * n;
+  return dir == -1 ? nearest : nearest + n; 
+}
+
 void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface) {
     float dy, dx;
     int midx = pos[0]+(rect.w/2);
     int midy = pos[1]+(rect.h/2);
-    for (float a = direction-HALF_FOV; a <= direction+HALF_FOV; a += DEGREE*4) {
-        dy = sin(a) * 80;
-        dx = cos(a) * 80;
-        drawLine(surface, midx, midy, midx+dx, midy+dy, SDL_MapRGB(surface->format, 255, 0, 0));
+    for (float a = direction-HALF_FOV; a <= direction+HALF_FOV; a += DEGREE) {
+        dy = sin(a) * MAP_HEIGHT;
+        dx = cos(a) * MAP_WIDTH;
+        if (dx < 0) {
+            int nx = nearestDirectionalMultiple(midx, 45, -1);
+        }
+        else {
+            int nx = nearestDirectionalMultiple(midx, 45, 1);
+        }
+        if (dy < 0) {
+            int ny = nearestDirectionalMultiple(midy, 45, -1);
+        }
+        else {
+            int ny = nearestDirectionalMultiple(midy, 45, 1);
+        }
+
+        // drawLine(surface, midx, midy, midx+dx, midy+dy, SDL_MapRGB(surface->format, 255, 0, 0));
     }
 }
 
