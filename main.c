@@ -157,8 +157,8 @@ void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface
     int midx = pos[0]+(rect.w/2);
     int midy = pos[1]+(rect.h/2);
     for (float a = direction-HALF_FOV; a <= direction+HALF_FOV; a += DEGREE) {
-        dy = sin(a) * MAP_HEIGHT;
-        dx = cos(a) * MAP_WIDTH;
+        dy = sin(a);
+        dx = cos(a);
         if (dx < 0) {
             int nx = nearestDirectionalMultiple(midx, 45, -1);
         }
