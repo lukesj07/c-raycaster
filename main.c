@@ -45,6 +45,8 @@ void drawMap2D(int map[MAP_HEIGHT][MAP_WIDTH], SDL_Surface *surface);
 void drawPlayer2D(float pos[2], float direction, SDL_Surface *surface);
 void drawLine(SDL_Surface *surface, int x1, int y1, int x2, int y2, Uint32 color);
 void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface);
+int nearestDirectionalMultiple(float m, float n, int dir);
+float calculateDist(int p1[2], int p2[2]);
 
 int main() {
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -152,25 +154,46 @@ int nearestDirectionalMultiple(float m, float n, int dir) {
   return dir == -1 ? nearest : nearest + n; 
 }
 
+float calculateDist(int p1[2], int p2[2]) {
+    return sqrt(pow((p1[0] - p2[0]), 2) + pow((p1[1] - p2[1]), 2));
+}
+
 void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface) {
+    
     float dy, dx;
-    int midx = pos[0]+(rect.w/2);
-    int midy = pos[1]+(rect.h/2);
+    int mid[2];
+    mid[0] = pos[0]+(rect.w/2);
+    mid[1] = pos[1]+(rect.h/2);
+
     for (float a = direction-HALF_FOV; a <= direction+HALF_FOV; a += DEGREE) {
         dy = sin(a);
         dx = cos(a);
+        int xs[2]; // x, y pair denoting nearest intersection with a vertical line
+        int ys[2]; // x, y pair denoting nearest intersection with a horizontal line
         if (dx < 0) {
-            int nx = nearestDirectionalMultiple(midx, 45, -1);
+            xs[0] = nearestDirectionalMultiple(mid[0], 45, -1);
+            xs[1] = abs(xs[0] - mid[0])*tan(a);
         }
-        else {
-            int nx = nearestDirectionalMultiple(midx, 45, 1);
+        if (dx > 0) {
+            xs[0] = nearestDirectionalMultiple(mid[0], 45, 1);
+            xs[1] = abs(xs[0] - mid[0])*tan(a);
         }
         if (dy < 0) {
-            int ny = nearestDirectionalMultiple(midy, 45, -1);
+            ys[1] = nearestDirectionalMultiple(mid[1], 45, -1);
+            ys[0] = abs(ys[1] - mid[1])/tan(a);
         }
-        else {
-            int ny = nearestDirectionalMultiple(midy, 45, 1);
+        if (dy > 0) {
+            ys[1] = nearestDirectionalMultiple(mid[1], 45, 1);
+            ys[0] = abs(ys[1] - mid[1])/tan(a);
         }
+
+        if (calculateDist(xs, mid) > calculateDist(ys, mid)) {
+            
+        }
+        
+
+
+
 
         // drawLine(surface, midx, midy, midx+dx, midy+dy, SDL_MapRGB(surface->format, 255, 0, 0));
     }
