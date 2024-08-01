@@ -14,6 +14,7 @@
 
 #define TILE_SIZE 45
 #define MAX_DIST 1000.0
+#define MOVE_SPEED 5
 
 int map[MAP_HEIGHT][MAP_WIDTH] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -47,6 +48,10 @@ struct playerState {
 void drawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, SDL_Color color);
 void render3DView(SDL_Renderer *renderer, float pos[2], float direction);
 float calculateDist(float p1[2], float p2[2]);
+int nearestMultiple(float m);
+int clamp(int value, int min, int max);
+int checkCollision(float x, float y);
+void movePlayer(struct playerState *player, float deltaX, float deltaY);
 
 int main() {
     if(SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -80,6 +85,8 @@ int main() {
                 run = 0;
             }
             if (e.type == SDL_KEYDOWN) {
+                float deltaX = 0;
+                float deltaY = 0;
                 switch (e.key.keysym.sym) {
                     case SDLK_LEFT:
                         player.direction -= 0.1f;
@@ -90,12 +97,14 @@ int main() {
                         if (player.direction > 2*PI) {player.direction -= 2*PI;}
                         break;
                     case SDLK_UP:
-                        player.position[0] += cos(player.direction) * 5;
-                        player.position[1] += sin(player.direction) * 5;
+                        deltaX = cos(player.direction) * MOVE_SPEED;
+                        deltaY = sin(player.direction) * MOVE_SPEED;
+                        movePlayer(&player, deltaX, deltaY);
                         break;
                     case SDLK_DOWN:
-                        player.position[0] -= cos(player.direction) * 5;
-                        player.position[1] -= sin(player.direction) * 5;
+                        deltaX = -cos(player.direction) * MOVE_SPEED;
+                        deltaY = -sin(player.direction) * MOVE_SPEED;
+                        movePlayer(&player, deltaX, deltaY);
                         break;
                 }
             }
@@ -111,6 +120,27 @@ int main() {
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
+}
+
+int checkCollision(float x, float y) {
+    int mapX = (int)(x / TILE_SIZE);
+    int mapY = (int)(y / TILE_SIZE);
+    if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) {
+        return 1;
+    }
+    return map[mapY][mapX] == 1;
+}
+
+void movePlayer(struct playerState *player, float deltaX, float deltaY) {
+    float newX = player->position[0] + deltaX;
+    float newY = player->position[1] + deltaY;
+
+    if (!checkCollision(newX, player->position[1])) {
+        player->position[0] = newX;
+    }
+    if (!checkCollision(player->position[0], newY)) {
+        player->position[1] = newY;
+    }
 }
 
 //3D and helper functions
@@ -215,3 +245,4 @@ void render3DView(SDL_Renderer *renderer, float pos[2], float direction) {
         SDL_RenderDrawLine(renderer, x, drawStart, x, drawEnd);
     }
 }
+
