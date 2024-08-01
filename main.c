@@ -1,4 +1,3 @@
-
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <math.h>
@@ -14,6 +13,7 @@
 #define PI 3.1415926536
 
 #define TILE_SIZE 45
+#define MAX_DIST 1000.0
 
 int map[MAP_HEIGHT][MAP_WIDTH] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -48,6 +48,7 @@ void drawMap2D(SDL_Renderer *renderer, int map[MAP_HEIGHT][MAP_WIDTH]);
 void drawPlayer2D(SDL_Renderer *renderer, float pos[2], float direction);
 void drawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, SDL_Color color);
 void drawRays(SDL_Renderer *renderer, float pos[2], float direction);
+void render3DView(SDL_Renderer *renderer, float pos[2], float direction);
 float calculateDist(float p1[2], float p2[2]);
 
 int main() {
@@ -106,8 +107,9 @@ int main() {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
 
-        drawMap2D(renderer, map);
-        drawPlayer2D(renderer, player.position, player.direction);
+        //drawMap2D(renderer, map);
+        //drawPlayer2D(renderer, player.position, player.direction);
+        render3DView(renderer, player.position, player.direction);
 
         SDL_RenderPresent(renderer);
     }
@@ -152,42 +154,11 @@ void drawPlayer2D(SDL_Renderer *renderer, float pos[2], float direction) {
     drawRays(renderer, pos, direction);
 }
 
-void drawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, SDL_Color color) {
-    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-    SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
-}
-
-float calculateDist(float pos[2], float intersection[2]) {
-    return sqrt(pow(intersection[0] - pos[0], 2) + pow(intersection[1] - pos[1], 2));
-}
-
-void calculateVerticalIntersection(float pos[2], float rayAngle, float result[2]) {
-    float tanA = tan(rayAngle);
-    if (cos(rayAngle) > 0) {
-        result[0] = floor(pos[0] / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
-        result[1] = pos[1] + (result[0] - pos[0]) * tanA;
-    } else {
-        result[0] = floor(pos[0] / TILE_SIZE) * TILE_SIZE - 1;
-        result[1] = pos[1] + (result[0] - pos[0]) * tanA;
-    }
-}
-
-void calculateHorizontalIntersection(float pos[2], float rayAngle, float result[2]) {
-    float tanA = tan(rayAngle);
-    if (sin(rayAngle) > 0) {
-        result[1] = floor(pos[1] / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
-        result[0] = pos[0] + (result[1] - pos[1]) / tanA;
-    } else {
-        result[1] = floor(pos[1] / TILE_SIZE) * TILE_SIZE - 1;
-        result[0] = pos[0] + (result[1] - pos[1]) / tanA;
-    }
-}
-
 void drawRays(SDL_Renderer *renderer, float pos[2], float direction) {
     float mid[2] = {pos[0], pos[1]}; // Middle of player position
 
     for (float a = direction - HALF_FOV; a <= direction + HALF_FOV; a += DEGREE) {
-        float rayAngle = fmod(a + 2 * PI, 2 * PI);  // Ensure angle is within 0 to 2*PI
+        float rayAngle = fmod(a + 2 * PI, 2 * PI);  // Ensure angle is within 0 to 2PI
 
         float verticalIntersection[2], horizontalIntersection[2];
 
@@ -236,5 +207,109 @@ void drawRays(SDL_Renderer *renderer, float pos[2], float direction) {
         } else {
             drawLine(renderer, mid[0], mid[1], horizontalIntersection[0], horizontalIntersection[1], (SDL_Color){255, 0, 0, 255});
         }
+    }
+}
+
+
+//3D and helper functions
+void drawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, SDL_Color color) {
+    SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+    SDL_RenderDrawLine(renderer, x1, y1, x2, y2);
+}
+
+float calculateDist(float pos[2], float intersection[2]) {
+    return sqrt(pow(intersection[0] - pos[0], 2) + pow(intersection[1] - pos[1], 2));
+}
+
+void calculateVerticalIntersection(float pos[2], float rayAngle, float result[2]) {
+    float tanA = tan(rayAngle);
+    if (cos(rayAngle) > 0) {
+        result[0] = floor(pos[0] / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
+        result[1] = pos[1] + (result[0] - pos[0]) * tanA;
+    } else {
+        result[0] = floor(pos[0] / TILE_SIZE) * TILE_SIZE - 1;
+        result[1] = pos[1] + (result[0] - pos[0]) * tanA;
+    }
+}
+
+void calculateHorizontalIntersection(float pos[2], float rayAngle, float result[2]) {
+    float tanA = tan(rayAngle);
+    if (sin(rayAngle) > 0) {
+        result[1] = floor(pos[1] / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
+        result[0] = pos[0] + (result[1] - pos[1]) / tanA;
+    } else {
+        result[1] = floor(pos[1] / TILE_SIZE) * TILE_SIZE - 1;
+        result[0] = pos[0] + (result[1] - pos[1]) / tanA;
+    }
+}
+
+void render3DView(SDL_Renderer *renderer, float pos[2], float direction) {
+    for (int x = 0; x < SCREEN_WIDTH; x++) {
+        float rayAngle = direction - HALF_FOV + (x * (HALF_FOV * 2) / SCREEN_WIDTH);
+        rayAngle = fmod(rayAngle + 2 * PI, 2 * PI);
+
+        float verticalIntersection[2], horizontalIntersection[2];
+
+        // Calculate vertical intersection
+        calculateVerticalIntersection(pos, rayAngle, verticalIntersection);
+        while (1) {
+            int mapX = verticalIntersection[0] / TILE_SIZE;
+            int mapY = verticalIntersection[1] / TILE_SIZE;
+            if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) {
+                break;
+            }
+            if (map[mapY][mapX] == 1) {
+                break;
+            }
+            if (cos(rayAngle) > 0) {
+                verticalIntersection[0] += TILE_SIZE;
+                verticalIntersection[1] += TILE_SIZE * tan(rayAngle);
+            } else {
+                verticalIntersection[0] -= TILE_SIZE;
+                verticalIntersection[1] -= TILE_SIZE * tan(rayAngle);
+            }
+        }
+
+        // Calculate horizontal intersection
+        calculateHorizontalIntersection(pos, rayAngle, horizontalIntersection);
+        while (1) {
+            int mapX = horizontalIntersection[0] / TILE_SIZE;
+            int mapY = horizontalIntersection[1] / TILE_SIZE;
+            if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT) {
+                break;
+            }
+            if (map[mapY][mapX] == 1) {
+                break;
+            }
+            if (sin(rayAngle) > 0) {
+                horizontalIntersection[1] += TILE_SIZE;
+                horizontalIntersection[0] += TILE_SIZE / tan(rayAngle);
+            } else {
+                horizontalIntersection[1] -= TILE_SIZE;
+                horizontalIntersection[0] -= TILE_SIZE / tan(rayAngle);
+            }
+        }
+
+        float dist;
+        int redVal;
+        if (calculateDist(pos, verticalIntersection) < calculateDist(pos, horizontalIntersection)) {
+            dist = calculateDist(pos, verticalIntersection);
+            redVal = 255;
+        } else {
+            dist = calculateDist(pos, horizontalIntersection);
+            redVal = 200;
+        }
+
+        // fisheye fix
+        dist *= cos(rayAngle - direction);
+
+        float lineHeight = (TILE_SIZE * SCREEN_HEIGHT) / dist;
+        float drawStart = -lineHeight / 2 + SCREEN_HEIGHT / 2;
+        if (drawStart < 0) drawStart = 0;
+        float drawEnd = lineHeight / 2 + SCREEN_HEIGHT / 2;
+        if (drawEnd >= SCREEN_HEIGHT) drawEnd = SCREEN_HEIGHT - 1;
+
+        SDL_SetRenderDrawColor(renderer, redVal, 0, 0, 255);
+        SDL_RenderDrawLine(renderer, x, drawStart, x, drawEnd);
     }
 }
