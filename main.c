@@ -168,32 +168,64 @@ void drawRays(float pos[2], float direction, SDL_Rect rect, SDL_Surface *surface
     for (float a = direction-HALF_FOV; a <= direction+HALF_FOV; a += DEGREE) {
         dy = sin(a);
         dx = cos(a);
-        int xs[2]; // x, y pair denoting nearest intersection with a vertical line
-        int ys[2]; // x, y pair denoting nearest intersection with a horizontal line
+
+        int xs[2]; // x, y pair denoting nearest intersection with a vertical line and used to track vert line search
+        int incX[2];
         if (dx < 0) {
             xs[0] = nearestDirectionalMultiple(mid[0], 45, -1);
             xs[1] = abs(xs[0] - mid[0])*tan(a);
+            incX[0] = -45;
         }
         if (dx > 0) {
             xs[0] = nearestDirectionalMultiple(mid[0], 45, 1);
             xs[1] = abs(xs[0] - mid[0])*tan(a);
+            incX[0] = 45;
         }
+        incX[1] = 45*tan(a);
+        
+        while (1) {
+            int mapX = xs[0]/45;
+            int mapY = xs[1]/45;
+            if (cos(a) < 0) {mapX--;}
+            if (sin(a) > 0) {mapY--;}
+            
+            if (map[mapY][mapX] == 1) {break;}
+            xs[0] += incX[0];
+            xs[1] += incX[1];
+        }
+
+
+
+        int ys[2]; // x, y pair denoting nearest intersection with a horizontal line and used to track horiz line search
+        int incY[2];
         if (dy < 0) {
             ys[1] = nearestDirectionalMultiple(mid[1], 45, -1);
             ys[0] = abs(ys[1] - mid[1])/tan(a);
+            incY[1] = -45;
         }
         if (dy > 0) {
             ys[1] = nearestDirectionalMultiple(mid[1], 45, 1);
             ys[0] = abs(ys[1] - mid[1])/tan(a);
+            incY[1] = 45;
+        }
+        incY[0] = 45/tan(a);
+
+        while (1) {
+            int mapX = ys[0]/45;
+            int mapY = ys[1]/45;
+            if (cos(a) < 0) {mapX--;}
+            if (sin(a) > 0) {mapY--;}
+            
+            if (map[mapY][mapX] == 1) {break;}
+            ys[0] += incY[0];
+            ys[1] += incY[1];
         }
 
-        if (calculateDist(xs, mid) < calculateDist(ys, mid)) {
-             
+        if (calculateDist(mid, xs) < calculateDist(mid, ys)) {
+            drawLine(surface, mid[0], mid[1], xs[0], xs[1], SDL_MapRGB(surface->format, 255, 0, 0));
+        } else {
+            drawLine(surface, mid[0], mid[1], ys[0], ys[1], SDL_MapRGB(surface->format, 255, 0, 0));
         }
-        
-
-
-
 
         // drawLine(surface, midx, midy, midx+dx, midy+dy, SDL_MapRGB(surface->format, 255, 0, 0));
     }
