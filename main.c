@@ -2,19 +2,20 @@
 #include <stdio.h>
 #include <math.h>
 
-#define SCREEN_WIDTH 900
-#define SCREEN_HEIGHT 900
+#define SCREEN_WIDTH 1000
+#define SCREEN_HEIGHT 1000
 
 #define MAP_WIDTH 20
 #define MAP_HEIGHT 20
 
-#define HALF_FOV (PI / 4)
+#define HALF_FOV (PI / 6)
 #define DEGREE (PI / 180)
 #define PI 3.1415926536
 
 #define TILE_SIZE 45
 #define MAX_DIST 1000.0
-#define MOVE_SPEED 5
+#define MOVE_SPEED 10
+#define TURN_SPEED 0.2f
 
 int map[MAP_HEIGHT][MAP_WIDTH] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -89,11 +90,11 @@ int main() {
                 float deltaY = 0;
                 switch (e.key.keysym.sym) {
                     case SDLK_LEFT:
-                        player.direction -= 0.1f;
+                        player.direction -= TURN_SPEED;
                         if (player.direction < 0) {player.direction += 2*PI;}
                         break;
                     case SDLK_RIGHT:
-                        player.direction += 0.1f;
+                        player.direction += TURN_SPEED;
                         if (player.direction > 2*PI) {player.direction -= 2*PI;}
                         break;
                     case SDLK_UP:
