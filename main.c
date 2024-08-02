@@ -155,10 +155,12 @@ float calculateDist(float pos[2], float intersection[2]) {
 
 void calculateVerticalIntersection(float pos[2], float rayAngle, float result[2]) {
     float tanA = tan(rayAngle);
-    if (cos(rayAngle) > 0) {
+    float cosA = cos(rayAngle);
+    if (cosA > 0) {
         result[0] = floor(pos[0] / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
         result[1] = pos[1] + (result[0] - pos[0]) * tanA;
-    } else {
+    } 
+    if (cosA < 0){
         result[0] = floor(pos[0] / TILE_SIZE) * TILE_SIZE - 1;
         result[1] = pos[1] + (result[0] - pos[0]) * tanA;
     }
@@ -166,10 +168,12 @@ void calculateVerticalIntersection(float pos[2], float rayAngle, float result[2]
 
 void calculateHorizontalIntersection(float pos[2], float rayAngle, float result[2]) {
     float tanA = tan(rayAngle);
-    if (sin(rayAngle) > 0) {
+    float sinA = sin(rayAngle);
+    if (sinA > 0) {
         result[1] = floor(pos[1] / TILE_SIZE) * TILE_SIZE + TILE_SIZE;
         result[0] = pos[0] + (result[1] - pos[1]) / tanA;
-    } else {
+    }
+    if (sinA < 0){
         result[1] = floor(pos[1] / TILE_SIZE) * TILE_SIZE - 1;
         result[0] = pos[0] + (result[1] - pos[1]) / tanA;
     }
@@ -193,10 +197,12 @@ void render3DView(SDL_Renderer *renderer, float pos[2], float direction) {
             if (map[mapY][mapX] == 1) {
                 break;
             }
-            if (cos(rayAngle) > 0) {
+            float cosA = cos(rayAngle);
+            if (cosA > 0) {
                 verticalIntersection[0] += TILE_SIZE;
                 verticalIntersection[1] += TILE_SIZE * tan(rayAngle);
-            } else {
+            }
+            if (cosA < 0) {
                 verticalIntersection[0] -= TILE_SIZE;
                 verticalIntersection[1] -= TILE_SIZE * tan(rayAngle);
             }
@@ -213,10 +219,12 @@ void render3DView(SDL_Renderer *renderer, float pos[2], float direction) {
             if (map[mapY][mapX] == 1) {
                 break;
             }
-            if (sin(rayAngle) > 0) {
+            float sinA = sin(rayAngle);
+            if (sinA > 0) {
                 horizontalIntersection[1] += TILE_SIZE;
                 horizontalIntersection[0] += TILE_SIZE / tan(rayAngle);
-            } else {
+            }
+            if (sinA < 0) {
                 horizontalIntersection[1] -= TILE_SIZE;
                 horizontalIntersection[0] -= TILE_SIZE / tan(rayAngle);
             }
