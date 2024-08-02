@@ -14,8 +14,8 @@
 
 #define TILE_SIZE 45
 #define MAX_DIST 1000.0
-#define MOVE_SPEED 10
-#define TURN_SPEED 0.2f
+#define MOVE_SPEED 5
+#define TURN_SPEED 0.1f
 
 int map[MAP_HEIGHT][MAP_WIDTH] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -43,7 +43,6 @@ int map[MAP_HEIGHT][MAP_WIDTH] = {
 struct playerState {
     float position[2];
     float direction;
-    int health;
 };
 
 void drawLine(SDL_Renderer *renderer, int x1, int y1, int x2, int y2, SDL_Color color);
@@ -76,39 +75,38 @@ int main() {
     player.position[0] = SCREEN_WIDTH / 2;
     player.position[1] = SCREEN_HEIGHT / 2;
     player.direction = 0;
-    player.health = 200;
 
+    const Uint8 *keyStates = SDL_GetKeyboardState(NULL);
     int run = 1;
     while(run) {
+        
         SDL_Event e;
         while(SDL_PollEvent(&e) > 0) {
             if (e.type == SDL_QUIT) {
                 run = 0;
             }
-            if (e.type == SDL_KEYDOWN) {
-                float deltaX = 0;
-                float deltaY = 0;
-                switch (e.key.keysym.sym) {
-                    case SDLK_LEFT:
-                        player.direction -= TURN_SPEED;
-                        if (player.direction < 0) {player.direction += 2*PI;}
-                        break;
-                    case SDLK_RIGHT:
-                        player.direction += TURN_SPEED;
-                        if (player.direction > 2*PI) {player.direction -= 2*PI;}
-                        break;
-                    case SDLK_UP:
-                        deltaX = cos(player.direction) * MOVE_SPEED;
-                        deltaY = sin(player.direction) * MOVE_SPEED;
-                        movePlayer(&player, deltaX, deltaY);
-                        break;
-                    case SDLK_DOWN:
-                        deltaX = -cos(player.direction) * MOVE_SPEED;
-                        deltaY = -sin(player.direction) * MOVE_SPEED;
-                        movePlayer(&player, deltaX, deltaY);
-                        break;
-                }
-            }
+        }
+        
+        float deltaX = 0;
+        float deltaY = 0;
+
+        if (keyStates[SDL_SCANCODE_W]) {
+            deltaX = cos(player.direction) * MOVE_SPEED;
+            deltaY = sin(player.direction) * MOVE_SPEED;
+            movePlayer(&player, deltaX, deltaY);
+        }
+        if (keyStates[SDL_SCANCODE_S]) {
+            deltaX = -cos(player.direction) * MOVE_SPEED;
+            deltaY = -sin(player.direction) * MOVE_SPEED;
+            movePlayer(&player, deltaX, deltaY);
+        }
+        if (keyStates[SDL_SCANCODE_A]) {
+            player.direction -= TURN_SPEED;
+            if (player.direction < 0) { player.direction += 2 * PI; }
+        }
+        if (keyStates[SDL_SCANCODE_D]) {
+            player.direction += TURN_SPEED;
+            if (player.direction > 2 * PI) { player.direction -= 2 * PI; }
         }
 
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
@@ -120,6 +118,7 @@ int main() {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
     return 0;
 }
 
