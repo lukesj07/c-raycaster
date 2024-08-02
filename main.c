@@ -14,7 +14,7 @@
 
 #define TILE_SIZE 45
 #define MAX_DIST 1000.0
-#define MOVE_SPEED 300 // pixels per seconf
+#define MOVE_SPEED 300 // pixels per second
 #define TURN_SPEED 3.0f // radians per second
 
 int map[MAP_HEIGHT][MAP_WIDTH] = {
@@ -89,7 +89,7 @@ int main() {
         }
 
         Uint32 currentTime = SDL_GetTicks();
-        float dt = (currentTime - lastTime) / 1000.0f; //conv to secs
+        float dt = (currentTime - lastTime) / 1000.0f; // conv to secs
         lastTime = currentTime;     
 
         float deltaX = 0;
