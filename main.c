@@ -14,8 +14,8 @@
 
 #define TILE_SIZE 45
 #define MAX_DIST 1000.0
-#define MOVE_SPEED 5
-#define TURN_SPEED 0.1f
+#define MOVE_SPEED 300 // pixels per seconf
+#define TURN_SPEED 3.0f // radians per second
 
 int map[MAP_HEIGHT][MAP_WIDTH] = {
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
@@ -77,6 +77,7 @@ int main() {
     player.direction = 0;
 
     const Uint8 *keyStates = SDL_GetKeyboardState(NULL);
+    Uint32 lastTime = SDL_GetTicks();
     int run = 1;
     while(run) {
         
@@ -86,26 +87,30 @@ int main() {
                 run = 0;
             }
         }
-        
+
+        Uint32 currentTime = SDL_GetTicks();
+        float dt = (currentTime - lastTime) / 1000.0f; //conv to secs
+        lastTime = currentTime;     
+
         float deltaX = 0;
         float deltaY = 0;
 
         if (keyStates[SDL_SCANCODE_W]) {
-            deltaX = cos(player.direction) * MOVE_SPEED;
-            deltaY = sin(player.direction) * MOVE_SPEED;
+            deltaX = cos(player.direction) * MOVE_SPEED * dt;
+            deltaY = sin(player.direction) * MOVE_SPEED * dt;
             movePlayer(&player, deltaX, deltaY);
         }
         if (keyStates[SDL_SCANCODE_S]) {
-            deltaX = -cos(player.direction) * MOVE_SPEED;
-            deltaY = -sin(player.direction) * MOVE_SPEED;
+            deltaX = -cos(player.direction) * MOVE_SPEED * dt;
+            deltaY = -sin(player.direction) * MOVE_SPEED * dt;
             movePlayer(&player, deltaX, deltaY);
         }
         if (keyStates[SDL_SCANCODE_A]) {
-            player.direction -= TURN_SPEED;
+            player.direction -= TURN_SPEED * dt;
             if (player.direction < 0) { player.direction += 2 * PI; }
         }
         if (keyStates[SDL_SCANCODE_D]) {
-            player.direction += TURN_SPEED;
+            player.direction += TURN_SPEED * dt;
             if (player.direction > 2 * PI) { player.direction -= 2 * PI; }
         }
 
